@@ -1,6 +1,6 @@
 ---
 title: "From Notebook to Production: Building Scalable RAG on Kubernetes with Elasticsearch"
-date: "2024-05-20"
+ 
 excerpt: "Stop building toy RAG apps. Learn how to deploy a production-ready, autoscaling vector search pipeline using standard Kubernetes patterns and Elasticsearch 8."
 ---
 
