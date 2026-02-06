@@ -4,16 +4,17 @@ title: "From Notebook to Production: Building Scalable RAG on Kubernetes with El
 excerpt: "Stop building toy RAG apps. Learn how to deploy a production-ready, autoscaling vector search pipeline using standard Kubernetes patterns and Elasticsearch 8."
 ---
 
-# The Reality Gap in GenAI
+# The Reality Gap in GenAI: Toy vs. Enterprise
 
 Every developer today has built a "Chat with PDF" app in a Jupyter notebook. It takes 50 lines of Python, a free OpenAI key, and a local FAISS index. It feels like magic.
 
-**Then you try to deploy it.**
+**Then you try to build a real-world Legal Discovery Bot or Customer Support Agent.**
 
 Suddenly, you face questions that your notebook can't answer:
-*   *How do we update the index without downtime?*
-*   *What happens when 1,000 users query simultaneously?*
-*   *How do we secure the vector database credentials?*
+
+*   **Data Drift (The "Day 0" snapshot problem)**: In a notebook, you load a PDF once. In production, your knowledge base (Jira, Confluence, Google Drive) changes every second. *How do we update the index incrementally without downtime?*
+*   **The "HR Violation" (Access Control)**: In a simple RAG, all contexts are equal. In an Enterprise, a Junior Dev shouldn't retrieve the CEO's salary document. *How do we filter chunks based on the user's JWT roles?*
+*   **The Thundering Herd**: *What happens when 1,000 support agents query simultaneously?* FAISS on a single pod will crash. You need a distributed system.
 
 This guide bridges that gap. We will build a **Production-Ready RAG Architecture** that treats vectors as first-class infrastructure, not just a sidecar script.
 
