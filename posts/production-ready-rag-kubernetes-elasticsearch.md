@@ -262,6 +262,32 @@ async def query_index(request: QueryRequest):
         raise HTTPException(status_code=500, detail="Internal Processing Error")
 ```
 
+
+---
+
+## 🧠 Advanced RAG Patterns
+
+Basic RAG retrieves top-k vectors. **Great RAG** understands that not all questions are semantic.
+
+### Hybrid Search (The "Secret Sauce")
+Pure vector search fails on specific queries like *error code 503* or *product ID X-99*. Vectors capture *meaning*, but Keywords capture *exact matches*.
+
+Elasticsearch 8.9+ introduces **RRF (Reciprocal Rank Fusion)**, which mathematically combines Vector scores and Keyword scores into a single, high-quality result set.
+
+**Modified `api.py` snippet for Hybrid Search:**
+
+```python
+        # In the retrieval step, use 'rank' for RRF
+        retriever = ElasticsearchStore(
+            es_url=os.getenv("ES_URL"),
+            api_key=os.getenv("ES_API_KEY"),
+            index_name="production-rag-v1",
+            strategy=ElasticsearchStore.Strategy.RRF, # <--- The Magic Line
+            embedding=OpenAIEmbeddings()
+        ).as_retriever(search_kwargs={"k": 5})
+```
+*Note: This requires no complex weighting math. RRF handles the normalization automatically.*
+
 ---
 
 ## 🛠️ Day 2 Operations: Keeping it Alive
@@ -303,6 +329,19 @@ This config ensures that when traffic spikes, K8s adds more API pods automatical
 ### 3. Security Check
 *   **Secrets**: Never maintain `ES_PASSWORD` in plain text. Use [External Secrets Operator](https://external-secrets.io/) to pull from AWS Secrets Manager or Azure Key Vault into K8s Secrets.
 *   **TLS**: ECK enables TLS by default. Ensure your Python clients verify SSL certificates to prevent Man-in-the-Middle attacks.
+
+---
+
+## ⚠️ Common Pitfalls & Troubleshooting
+
+Even with the best architecture, things break. Here is your cheat sheet for when they do.
+
+| Symptom | Probable Cause | Fix |
+| :--- | :--- | :--- |
+| **`Out of Memory (OOM) Killed`** | Vector indexes are RAM hungry. | Increase `resources.limits.memory` in your ES yaml, or switch to `quantized` vectors (byte-sized) to save 75% RAM. |
+| **Slow Queries (>1s)** | Mapping issue. | Ensure your dense_vector field is excluded from `_source` if vectors are large, or check `node.store.allow_mmap: true`. |
+| **"I don't know" answers** | Context window overflow. | If you retrieve too many docs (top_k=50), you confuse the LLM. Stick to top_k=3 to 5 high-quality chunks. |
+| **Stale Answers** | Index not refreshing. | Check your ingestion K8s Job logs. Did it crash silently? Implement a livenessProbe. |
 
 ---
 
